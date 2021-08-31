@@ -35,7 +35,7 @@ class RemoteProxyProtoFilter : public Network::ReadFilter {
     read_callbacks_->connection().streamInfo().filterState()->setData(ProxyProtocolFilterState::key(), std::make_shared<ProxyProtocolFilterState>(ProxyProtocolData{
           read_callbacks_->connection().addressProvider().localAddress(),
           read_callbacks_->connection().addressProvider().remoteAddress()}),
-        StreamInfo::FilterState::StateType::Mutable);
+        StreamInfo::FilterState::StateType::Mutable, StreamInfo::FilterState::LifeSpan::Connection);
     return Network::FilterStatus::Continue;
   }
   void initializeReadFilterCallbacks(

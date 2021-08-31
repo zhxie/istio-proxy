@@ -10,9 +10,6 @@ static_resources:
         "@type": type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst
     filter_chains:
     - filters:
-      - name: remote_proxy_proto
-        typed_config:
-          "@type": type.googleapis.com/io.istio.tcp.remote_proxy_proto.v1.Config
       - name: tcp_proxy
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
@@ -37,9 +34,7 @@ static_resources:
         config:
           version: V1
         transport_socket:
-          name: raw_buffer
-          typed_config:
-            "@type": type.googleapis.com/envoy.extensions.transport_sockets.raw_buffer.v3.RawBuffer
+          name: envoy.transport_sockets.raw_buffer
 admin:
   access_log_path: "/dev/null"
   address:
