@@ -19,6 +19,7 @@ load(
     "@envoy//bazel:envoy_build_system.bzl",
     "envoy_cc_library",
     "envoy_cc_test",
+    "envoy_proto_library",
 )
 
 envoy_cc_library(
@@ -33,12 +34,7 @@ envoy_cc_library(
     ],
 )
 
-cc_proto_library(
-    name = "config_cc_proto",
-    deps = ["config_proto"],
-)
-
-proto_library(
-    name = "config_proto",
+envoy_proto_library(
+    name = "config",
     srcs = ["config.proto"],
 )

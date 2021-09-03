@@ -1,59 +1,31 @@
-/* Copyright 2018 Istio Authors. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #pragma once
 
 #include "envoy/server/filter_config.h"
-#include "source/common/network/proxy_protocol_filter_state.h"
 
 namespace Envoy {
 namespace Network {
 namespace RemoteProxyProto {
 
-class RemoteProxyProtoFilter : public Network::ReadFilter {
+class RemoteProxyProtoFilter : public Network::ListenerFilter {
  public:
-  RemoteProxyProtoFilter() {}
+  RemoteProxyProtoFilter(const std::string& destination_ip)
+      : destination_ip_(destination_ip) {}
 
-  // Network::ReadFilter
-  Network::FilterStatus onData(Buffer::Instance&,
-                               bool) override {
-    return Network::FilterStatus::Continue;
-  }
-  Network::FilterStatus onNewConnection() override {
-    read_callbacks_->connection().streamInfo().filterState()->setData(ProxyProtocolFilterState::key(), std::make_shared<ProxyProtocolFilterState>(ProxyProtocolData{
-          read_callbacks_->connection().addressProvider().localAddress(),
-          read_callbacks_->connection().addressProvider().remoteAddress()}),
-        StreamInfo::FilterState::StateType::Mutable, StreamInfo::FilterState::LifeSpan::Connection);
-    return Network::FilterStatus::Continue;
-  }
-  void initializeReadFilterCallbacks(
-      Network::ReadFilterCallbacks& callbacks) override {
-    read_callbacks_ = &callbacks;
-  }
+  // Network::ListenerFilter
+  Network::FilterStatus onAccept(Network::ListenerFilterCallbacks& cb) override;
 
  private:
-  Network::ReadFilterCallbacks* read_callbacks_{};
+  const std::string destination_ip_;
 };
 
-class RemoteProxyProtoNetworkFilterConfigFactory
-    : public Server::Configuration::NamedNetworkFilterConfigFactory {
+class RemoteProxyProtoFilterConfigFactory
+    : public Server::Configuration::NamedListenerFilterConfigFactory {
  public:
-  // NamedNetworkFilterConfigFactory
-  Network::FilterFactoryCb createFilterFactoryFromProto(
-      const Protobuf::Message&,
-      Server::Configuration::FactoryContext&) override;
+  // NamedListenerFilterConfigFactory
+  Network::ListenerFilterFactoryCb createListenerFilterFactoryFromProto(
+      const Protobuf::Message& message,
+      const Network::ListenerFilterMatcherSharedPtr& listener_filter_matcher,
+      Server::Configuration::ListenerFactoryContext& context) override;
   ProtobufTypes::MessagePtr createEmptyConfigProto() override;
   std::string name() const override { return "istio.remote_proxy_proto"; }
 };

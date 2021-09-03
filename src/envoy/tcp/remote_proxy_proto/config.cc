@@ -1,38 +1,47 @@
-/* Copyright 2018 Istio Authors. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "src/envoy/tcp/remote_proxy_proto/config.h"
 
 #include "envoy/registry/registry.h"
+#include "source/common/network/utility.h"
+#include "source/common/protobuf/utility.h"
 #include "src/envoy/tcp/remote_proxy_proto/config.pb.h"
+#include "src/envoy/tcp/remote_proxy_proto/config.pb.validate.h"
 
 namespace Envoy {
 namespace Network {
 namespace RemoteProxyProto {
 
-Network::FilterFactoryCb
-RemoteProxyProtoNetworkFilterConfigFactory::createFilterFactoryFromProto(
-    const Protobuf::Message&, Server::Configuration::FactoryContext&) {
-  return [](Network::FilterManager& filter_manager) -> void {
-    filter_manager.addReadFilter(
-        std::make_shared<RemoteProxyProtoFilter>());
+Network::FilterStatus RemoteProxyProtoFilter::onAccept(
+    Network::ListenerFilterCallbacks& cb) {
+  Network::ConnectionSocket& socket = cb.socket();
+  // Construct the new address based on the provided config
+  if (socket.addressType() == Network::Address::Type::Ip &&
+      socket.addressProvider().localAddress()->ip()->addressAsString() !=
+          destination_ip_) {
+    socket.addressProvider().restoreLocalAddress(
+        Network::Utility::parseInternetAddress(
+            destination_ip_,
+            socket.addressProvider().localAddress()->ip()->port()));
+  }
+
+  return Network::FilterStatus::Continue;
+}
+Network::ListenerFilterFactoryCb
+RemoteProxyProtoFilterConfigFactory::createListenerFilterFactoryFromProto(
+    const Protobuf::Message& message,
+    const Network::ListenerFilterMatcherSharedPtr& listener_filter_matcher,
+    Server::Configuration::ListenerFactoryContext& context) {
+  const auto& proto_config = Envoy::MessageUtil::downcastAndValidate<
+      const io::istio::tcp::remote_proxy_proto::v1::Config&>(
+      message, context.messageValidationVisitor());
+  return [listener_filter_matcher, proto_config](Network::ListenerFilterManager& filter_manager) -> void {
+    filter_manager.addAcceptFilter(listener_filter_matcher,
+                                   std::make_unique<RemoteProxyProtoFilter>(
+                                       proto_config.destination_ip()));
   };
 }
 
 ProtobufTypes::MessagePtr
-RemoteProxyProtoNetworkFilterConfigFactory::createEmptyConfigProto() {
+RemoteProxyProtoFilterConfigFactory::createEmptyConfigProto() {
   return std::make_unique<io::istio::tcp::remote_proxy_proto::v1::Config>();
 }
 
@@ -41,8 +50,8 @@ RemoteProxyProtoNetworkFilterConfigFactory::createEmptyConfigProto() {
  * RegisterFactory.
  */
 static Registry::RegisterFactory<
-    RemoteProxyProtoNetworkFilterConfigFactory,
-    Server::Configuration::NamedNetworkFilterConfigFactory>
+    RemoteProxyProtoFilterConfigFactory,
+    Server::Configuration::NamedListenerFilterConfigFactory>
     registered_;
 
 }  // namespace RemoteProxyProto
