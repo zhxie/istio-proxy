@@ -132,6 +132,7 @@ ENVOY_EXTENSIONS = {
     "envoy.filters.http.grpc_json_transcoder":          "//source/extensions/filters/http/grpc_json_transcoder:config",
     "envoy.filters.http.grpc_stats":                    "//source/extensions/filters/http/grpc_stats:config",
     "envoy.filters.http.grpc_web":                      "//source/extensions/filters/http/grpc_web:config",
+    "envoy.filters.http.guardrail":                     "//source/extensions/filters/http/guardrail:config",
     "envoy.filters.http.header_to_metadata":            "//source/extensions/filters/http/header_to_metadata:config",
     "envoy.filters.http.header_mutation":               "//source/extensions/filters/http/header_mutation:config",
     "envoy.filters.http.health_check":                  "//source/extensions/filters/http/health_check:config",
@@ -443,6 +444,12 @@ ENVOY_EXTENSIONS = {
     #
 
     "envoy.router.cluster_specifier_plugin.lua": "//source/extensions/router/cluster_specifiers/lua:config",
+
+    #
+    # Inference runtimes
+    #
+
+    "envoy.inference_runtime.openvino":                     "//source/extensions/inference_runtime/openvino:config",
 
     #
     # Injected credentials
